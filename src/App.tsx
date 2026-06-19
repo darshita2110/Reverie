@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
+import TodayPage from './TodayPage'
 import './App.css'
 
 const themes = ['classic', 'dusk', 'botanical', 'rose'] as const
@@ -9,52 +10,47 @@ type Page = 'today' | 'entries' | 'calendar' | 'insights' | 'settings'
 function App() {
   const [theme, setTheme] = useState<Theme>('classic')
   const [page, setPage] = useState<Page>('today')
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     document.body.setAttribute('data-theme', theme)
   }, [theme])
 
-  return (
-    <div className="app">
-      <Sidebar page={page} onNavigate={setPage} theme={theme} onThemeChange={setTheme} />
-      <main className="main">
-        {page === 'today' && <TodayPage />}
-        {page === 'entries' && <Placeholder title="Entries" note="Your past pages will live here." />}
-        {page === 'calendar' && <Placeholder title="Calendar" note="A month view of your writing." />}
-        {page === 'insights' && <Placeholder title="Insights" note="Moods, streaks and word counts." />}
-        {page === 'settings' && <Placeholder title="Settings" note="Make this diary feel like yours." />}
-      </main>
-    </div>
-  )
-}
-
-function TodayPage() {
-  const [entry, setEntry] = useState('')
-  const today = new Date().toLocaleDateString(undefined, {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
-  const wordCount = entry.trim() ? entry.trim().split(/\s+/).length : 0
+  function goTo(p: Page) {
+    setPage(p)
+    setMenuOpen(false)
+  }
 
   return (
-    <div className="page">
-      <p className="date">{today}</p>
-      <h1 className="greeting">How was your day?</h1>
-      <textarea
-        className="writer"
-        placeholder="Start writing…"
-        value={entry}
-        onChange={(e) => setEntry(e.target.value)}
-      />
-      <p className="count">{wordCount} words</p>
-    </div>
+    <>
+      <div className="grain" />
+      <button className="mobile-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+
+      <div className="app">
+        <Sidebar page={page} onNavigate={goTo} theme={theme} onThemeChange={setTheme} streak={0} open={menuOpen} />
+        <main className="main">
+          {page === 'today' && <TodayPage />}
+          {page === 'entries' && <Placeholder title="All entries" note="Your past pages will live here." />}
+          {page === 'calendar' && <Placeholder title="Calendar" note="A month view of your writing." />}
+          {page === 'insights' && <Placeholder title="Mood insights" note="Moods, streaks and word counts." />}
+          {page === 'settings' && <Placeholder title="Settings" note="Make this diary feel like yours." />}
+        </main>
+      </div>
+    </>
   )
 }
 
 function Placeholder({ title, note }: { title: string; note: string }) {
   return (
     <div className="page">
-      <h1 className="greeting">{title}</h1>
-      <p className="placeholder-note">{note}</p>
+      <div className="page-header">
+        <div>
+          <div className="page-title">{title}</div>
+          <div className="page-sub">{note}</div>
+        </div>
+      </div>
     </div>
   )
 }
