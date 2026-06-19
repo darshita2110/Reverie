@@ -1,42 +1,18 @@
 import { useState, useRef } from 'react'
+import { MOODS, WEATHER, type Entry } from './diary'
 
-const MOODS = [
-  { id: 'joy', emoji: '😄', label: 'Joyful', cls: 's-joy' },
-  { id: 'calm', emoji: '😌', label: 'Calm', cls: 's-calm' },
-  { id: 'love', emoji: '🥰', label: 'Loved', cls: 's-love' },
-  { id: 'tired', emoji: '😴', label: 'Tired', cls: 's-tired' },
-  { id: 'sad', emoji: '😔', label: 'Sad', cls: 's-sad' },
-  { id: 'angry', emoji: '😤', label: 'Frustrated', cls: 's-angry' },
-  { id: 'anxious', emoji: '😟', label: 'Anxious', cls: 's-anxious' },
-  { id: 'grateful', emoji: '🙏', label: 'Grateful', cls: 's-grateful' },
-]
-const WEATHER = [
-  { id: 'sun', icon: '☀️' }, { id: 'cloud', icon: '☁️' }, { id: 'rain', icon: '🌧️' },
-  { id: 'snow', icon: '❄️' }, { id: 'storm', icon: '⛈️' },
-]
+type TodayPageProps = { entry: Entry; onChange: (entry: Entry) => void }
 
-type Entry = {
-  date: string
-  title: string
-  body: string
-  mood: string | null
-  weather: string | null
-  tags: string[]
-  photos: string[]
-  favorite: boolean
+function readAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result as string)
+    r.readAsDataURL(file)
+  })
 }
 
-function makeEmptyEntry(): Entry {
-  return {
-    date: new Date().toISOString().slice(0, 10),
-    title: '', body: '', mood: null, weather: null, tags: [], photos: [], favorite: false,
-  }
-}
-
-export default function TodayPage() {
-  const [entry, setEntry] = useState<Entry>(makeEmptyEntry)
+export default function TodayPage({ entry, onChange }: TodayPageProps) {
   const [tagDraft, setTagDraft] = useState('')
-  const [saveState, setSaveState] = useState('Start writing — saves as you go')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const d = new Date(entry.date + 'T12:00:00')
@@ -44,25 +20,21 @@ export default function TodayPage() {
   const weekday = d.toLocaleDateString(undefined, { weekday: 'long' })
 
   function update(patch: Partial<Entry>) {
-    setEntry((e) => ({ ...e, ...patch }))
-    setSaveState('Saving…')
-    setTimeout(() => setSaveState('Saved just now'), 600)
+    onChange({ ...entry, ...patch })
   }
-
   function addTag() {
     const v = tagDraft.trim().replace(/^#/, '').slice(0, 20)
     if (v && !entry.tags.includes(v)) update({ tags: [...entry.tags, v] })
     setTagDraft('')
   }
-
-  function addPhotos(files: FileList | null) {
-    Array.from(files || []).forEach((f) => {
-      const reader = new FileReader()
-      reader.onload = (ev) =>
-        setEntry((e) => (e.photos.length >= 4 ? e : { ...e, photos: [...e.photos, ev.target?.result as string] }))
-      reader.readAsDataURL(f)
-    })
+  async function addPhotos(files: FileList | null) {
+    const room = 4 - entry.photos.length
+    const slice = Array.from(files || []).slice(0, room)
+    const urls = await Promise.all(slice.map(readAsDataURL))
+    if (urls.length) update({ photos: [...entry.photos, ...urls] })
   }
+
+  const status = entry.title || entry.body || entry.mood ? 'Saved to your diary' : 'Start writing — saves as you go'
 
   return (
     <div className="page">
@@ -147,8 +119,8 @@ export default function TodayPage() {
           </div>
 
           <div className="sheet-footer">
-            <div className="save-state"><span className="save-dot" /><span>{saveState}</span></div>
-            <button className="btn btn-primary" onClick={() => setSaveState('Saved just now')}>
+            <div className="save-state"><span className="save-dot" /><span>{status}</span></div>
+            <button className="btn btn-primary" onClick={() => onChange(entry)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Save page
             </button>

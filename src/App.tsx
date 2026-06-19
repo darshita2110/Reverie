@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
 import TodayPage from './TodayPage'
+import { loadEntries, saveEntry, deleteEntry } from './storage'
+import { makeEmptyEntry, computeStreak, hasContent, todayKey, type Entry } from './diary'
 import './App.css'
 
 const themes = ['classic', 'dusk', 'botanical', 'rose'] as const
@@ -11,6 +13,7 @@ function App() {
   const [theme, setTheme] = useState<Theme>('classic')
   const [page, setPage] = useState<Page>('today')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [entries, setEntries] = useState<Record<string, Entry>>(() => loadEntries())
 
   useEffect(() => {
     document.body.setAttribute('data-theme', theme)
@@ -21,6 +24,15 @@ function App() {
     setMenuOpen(false)
   }
 
+  function upsertEntry(entry: Entry) {
+    setEntries((prev) => ({ ...prev, [entry.date]: entry }))
+    if (hasContent(entry)) saveEntry(entry)
+    else deleteEntry(entry.date)
+  }
+
+  const todayEntry = entries[todayKey()] ?? makeEmptyEntry()
+  const streak = computeStreak(entries)
+
   return (
     <>
       <div className="grain" />
@@ -29,9 +41,9 @@ function App() {
       </button>
 
       <div className="app">
-        <Sidebar page={page} onNavigate={goTo} theme={theme} onThemeChange={setTheme} streak={0} open={menuOpen} />
+        <Sidebar page={page} onNavigate={goTo} theme={theme} onThemeChange={setTheme} streak={streak} open={menuOpen} />
         <main className="main">
-          {page === 'today' && <TodayPage />}
+          {page === 'today' && <TodayPage entry={todayEntry} onChange={upsertEntry} />}
           {page === 'entries' && <Placeholder title="All entries" note="Your past pages will live here." />}
           {page === 'calendar' && <Placeholder title="Calendar" note="A month view of your writing." />}
           {page === 'insights' && <Placeholder title="Mood insights" note="Moods, streaks and word counts." />}
