@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
-import { MOODS, WEATHER, type Entry } from './diary'
+import { MOODS, WEATHER, todayKey, type Entry } from './diary'
 
-type TodayPageProps = { entry: Entry; onChange: (entry: Entry) => void }
+type TodayPageProps = { entry: Entry; onChange: (entry: Entry) => void; onBack: () => void }
 
 function readAsDataURL(file: File): Promise<string> {
   return new Promise((resolve) => {
@@ -11,13 +11,14 @@ function readAsDataURL(file: File): Promise<string> {
   })
 }
 
-export default function TodayPage({ entry, onChange }: TodayPageProps) {
+export default function TodayPage({ entry, onChange, onBack }: TodayPageProps) {
   const [tagDraft, setTagDraft] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const d = new Date(entry.date + 'T12:00:00')
   const longDate = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   const weekday = d.toLocaleDateString(undefined, { weekday: 'long' })
+  const isToday = entry.date === todayKey()
 
   function update(patch: Partial<Entry>) {
     onChange({ ...entry, ...patch })
@@ -40,9 +41,10 @@ export default function TodayPage({ entry, onChange }: TodayPageProps) {
     <div className="page">
       <div className="page-header">
         <div>
-          <div className="page-title">Today's page</div>
+          <div className="page-title">{isToday ? "Today's page" : 'Editing a page'}</div>
           <div className="page-date">{longDate}</div>
         </div>
+        {!isToday && <button className="btn btn-ghost" onClick={onBack}>Back to today</button>}
       </div>
 
       <div className="journal-sheet">
