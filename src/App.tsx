@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Sidebar from './Sidebar'
 import TodayPage from './TodayPage'
 import EntriesPage from './EntriesPage'
+import CalendarPage from './CalendarPage'
 import { loadEntries, saveEntry, deleteEntry } from './storage'
 import { makeEmptyEntry, computeStreak, hasContent, todayKey, type Entry } from './diary'
 import './App.css'
@@ -55,7 +56,7 @@ function App() {
         <main className="main">
           {page === 'today' && <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} />}
           {page === 'entries' && <EntriesPage entries={entries} onOpen={openEntry} />}
-          {page === 'calendar' && <Placeholder title="Calendar" note="A month view of your writing." />}
+          {page === 'calendar' && <CalendarPage entries={entries} onOpen={openEntry} />}
           {page === 'insights' && <Placeholder title="Mood insights" note="Moods, streaks and word counts." />}
           {page === 'settings' && <Placeholder title="Settings" note="Make this diary feel like yours." />}
         </main>

@@ -151,3 +151,17 @@
 .empty-state svg { width: 64px; height: 64px; opacity: .3; margin-bottom: 14px; }
 .empty-state h3 { font-family: var(--font-display); font-size: 19px; color: var(--ink); margin-bottom: 6px; font-weight: 600; }
 .empty-state p { font-size: 13.5px; max-width: 300px; margin: 0 auto; }
+
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.cal-month { font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.cal-nav { display: flex; gap: 6px; }
+.cal-nav button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.cal-nav button:hover { background: var(--cream); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.cal-dow { text-align: center; font-size: 11.5px; color: var(--ink-soft); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; padding-bottom: 4px; }
+.cal-cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 13px; position: relative; cursor: default; transition: .15s; color: var(--ink); }
+.cal-cell.has-entry { cursor: pointer; border-color: var(--gold); }
+.cal-cell.has-entry:hover { background: var(--cream); transform: scale(1.04); }
+.cal-cell.empty { visibility: hidden; }
+.cal-cell.today { box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-mood-dot { font-size: 14px; }
