@@ -165,3 +165,32 @@
 .cal-cell.empty { visibility: hidden; }
 .cal-cell.today { box-shadow: inset 0 0 0 2px var(--accent); }
 .cal-mood-dot { font-size: 14px; }
+
+.settings-section { margin-bottom: 36px; }
+.settings-title { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-bottom: 14px; }
+.theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.theme-card { border: 2px solid var(--line); border-radius: 14px; padding: 16px; cursor: pointer; transition: .15s; display: flex; flex-direction: column; gap: 10px; background: var(--paper); }
+.theme-card.active { border-color: var(--accent); }
+.theme-card:hover { transform: translateY(-2px); }
+.theme-preview { height: 46px; border-radius: 8px; }
+.theme-card-name { font-size: 13px; font-weight: 600; }
+.theme-card-sub { font-size: 11.5px; color: var(--ink-soft); }
+
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+.settings-row:last-child { border-bottom: none; }
+.settings-row-label { font-size: 14.5px; font-weight: 500; }
+.settings-row-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+.settings-input { padding: 9px 12px; background: var(--cream); border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px; color: var(--ink); outline: none; min-width: 160px; }
+.settings-input:focus { border-color: var(--gold); }
+
+.switch { width: 42px; height: 24px; border-radius: 999px; background: var(--line); position: relative; flex-shrink: 0; transition: .2s; border: none; padding: 0; cursor: pointer; }
+.switch.on { background: #6B7F5E; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.switch.on::after { left: 21px; }
+
+.danger-zone { border: 1px solid #D99; background: rgba(168,69,58,.06); border-radius: 14px; padding: 18px; margin-top: 8px; }
+.btn-danger { background: var(--accent-deep); color: #fff; }
+.btn-danger:hover { filter: brightness(1.05); }
+
+@media (max-width: 880px) { .theme-grid { grid-template-columns: repeat(2, 1fr); } }
+

@@ -3,46 +3,52 @@ import Sidebar from './Sidebar'
 import TodayPage from './TodayPage'
 import EntriesPage from './EntriesPage'
 import CalendarPage from './CalendarPage'
-import { loadEntries, saveEntry, deleteEntry } from './storage'
+import InsightsPage from './InsightsPage'
+import SettingsPage from './SettingsPage'
+import { loadEntries, saveEntry, deleteEntry, loadSettings, saveSettings, clearAllEntries } from './storage'
 import { makeEmptyEntry, computeStreak, hasContent, todayKey, type Entry } from './diary'
 import './App.css'
 
-const themes = ['classic', 'dusk', 'botanical', 'rose'] as const
-type Theme = typeof themes[number]
+type Theme = 'classic' | 'dusk' | 'botanical' | 'rose'
 type Page = 'today' | 'entries' | 'calendar' | 'insights' | 'settings'
 
 function App() {
-  const [theme, setTheme] = useState<Theme>('classic')
+  const [settings, setSettings] = useState(() => loadSettings())
   const [page, setPage] = useState<Page>('today')
   const [menuOpen, setMenuOpen] = useState(false)
   const [entries, setEntries] = useState<Record<string, Entry>>(() => loadEntries())
   const [editingDate, setEditingDate] = useState<string | null>(null)
 
-  useEffect(() => {
-    document.body.setAttribute('data-theme', theme)
-  }, [theme])
+  useEffect(() => { document.body.setAttribute('data-theme', settings.theme) }, [settings.theme])
+  useEffect(() => { saveSettings(settings) }, [settings])
 
+  function updateSettings(patch: Partial<typeof settings>) {
+    setSettings((s) => ({ ...s, ...patch }))
+  }
   function goTo(p: Page) {
     if (p === 'today') setEditingDate(null)
     setPage(p)
     setMenuOpen(false)
   }
-
   function openEntry(date: string) {
     setEditingDate(date)
     setPage('today')
     setMenuOpen(false)
   }
-
   function upsertEntry(entry: Entry) {
     setEntries((prev) => ({ ...prev, [entry.date]: entry }))
     if (hasContent(entry)) saveEntry(entry)
     else deleteEntry(entry.date)
   }
+  function eraseAll() {
+    clearAllEntries()
+    setEntries({})
+  }
 
   const activeDate = editingDate ?? todayKey()
   const activeEntry = entries[activeDate] ?? makeEmptyEntry(activeDate)
   const streak = computeStreak(entries)
+  const theme = settings.theme as Theme
 
   return (
     <>
@@ -52,29 +58,26 @@ function App() {
       </button>
 
       <div className="app">
-        <Sidebar page={page} onNavigate={goTo} theme={theme} onThemeChange={setTheme} streak={streak} open={menuOpen} />
+        <Sidebar page={page} onNavigate={goTo} theme={theme} onThemeChange={(t) => updateSettings({ theme: t })} streak={streak} open={menuOpen} />
         <main className="main">
           {page === 'today' && <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} />}
           {page === 'entries' && <EntriesPage entries={entries} onOpen={openEntry} />}
           {page === 'calendar' && <CalendarPage entries={entries} onOpen={openEntry} />}
-          {page === 'insights' && <Placeholder title="Mood insights" note="Moods, streaks and word counts." />}
-          {page === 'settings' && <Placeholder title="Settings" note="Make this diary feel like yours." />}
+          {page === 'insights' && <InsightsPage entries={entries} />}
+          {page === 'settings' && (
+            <SettingsPage
+              theme={theme}
+              onThemeChange={(t) => updateSettings({ theme: t })}
+              displayName={settings.displayName}
+              remindersOn={settings.remindersOn}
+              onSettingsChange={updateSettings}
+              entries={entries}
+              onEraseAll={eraseAll}
+            />
+          )}
         </main>
       </div>
     </>
-  )
-}
-
-function Placeholder({ title, note }: { title: string; note: string }) {
-  return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <div className="page-title">{title}</div>
-          <div className="page-sub">{note}</div>
-        </div>
-      </div>
-    </div>
   )
 }
 

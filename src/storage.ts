@@ -24,3 +24,28 @@ export function saveEntry(entry: Entry): void {
 export function deleteEntry(date: string): void {
   localStorage.removeItem(PREFIX + date)
 }
+
+export type Settings = { theme: string; displayName: string; remindersOn: boolean }
+const SETTINGS_KEY = 'reverie:settings'
+
+export function loadSettings(): Settings {
+  const def: Settings = { theme: 'classic', displayName: '', remindersOn: false }
+  try {
+    return { ...def, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }
+  } catch {
+    return def
+  }
+}
+
+export function saveSettings(s: Settings): void {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s))
+}
+
+export function clearAllEntries(): void {
+  const keys: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k && k.startsWith(PREFIX)) keys.push(k)
+  }
+  keys.forEach((k) => localStorage.removeItem(k))
+}
