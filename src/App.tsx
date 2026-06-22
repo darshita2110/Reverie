@@ -9,9 +9,12 @@ import CalendarPage from './CalendarPage'
 import InsightsPage from './InsightsPage'
 import SettingsPage from './SettingsPage'
 import Onboarding from './Onboarding'
+import LockScreen from './LockScreen'
+import { loadLock } from './lock'
 import { loadEntries, saveEntry, deleteEntry, loadSettings, saveSettings, eraseAllEntries, type Settings } from './storage'
 import { makeEmptyEntry, computeStreak, hasContent, todayKey, type Entry } from './diary'
 import './App.css'
+
 
 type Page = 'today' | 'entries' | 'calendar' | 'insights' | 'settings'
 
@@ -25,6 +28,8 @@ function App() {
   const [entries, setEntries] = useState<Record<string, Entry>>({})
   const [entriesLoaded, setEntriesLoaded] = useState(false)
   const [editingDate, setEditingDate] = useState<string | null>(null)
+  const [lock] = useState(() => loadLock())
+  const [unlocked, setUnlocked] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -46,6 +51,14 @@ function App() {
 
   useEffect(() => { document.body.setAttribute('data-theme', settings.theme) }, [settings.theme])
   useEffect(() => { document.body.setAttribute('data-font', settings.font) }, [settings.font])
+  useEffect(() => {
+    if (!lock.enabled) return
+    function onVisibility() {
+      if (document.visibilityState === 'hidden') setUnlocked(false)
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [lock.enabled])
 
   function updateSettings(patch: Partial<Settings>) {
     setSettings((prev) => { const next = { ...prev, ...patch }; saveSettings(next); return next })
@@ -76,6 +89,9 @@ function App() {
   if (!session) {
     return <AuthScreen />
   }
+  if (lock.enabled && !unlocked) {
+    return <LockScreen hash={lock.hash} salt={lock.salt} onUnlock={() => setUnlocked(true)} />
+  }
   if (!settings.joinedAt) {
     return <Onboarding onComplete={(name) => updateSettings({ name, joinedAt: Date.now() })} />
   }
@@ -97,7 +113,7 @@ function App() {
       <div className="app">
         <Sidebar page={page} onNavigate={goTo} theme={settings.theme} onThemeChange={(t) => updateSettings({ theme: t })} streak={streak} open={menuOpen} name={settings.name} />
         <main className="main">
-          {page === 'today' && <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} />}
+          {page === 'today' && <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} allEntries={entries} onOpen={openEntry} />}
           {page === 'entries' && <EntriesPage entries={entries} onOpen={openEntry} />}
           {page === 'calendar' && <CalendarPage entries={entries} onOpen={openEntry} />}
           {page === 'insights' && <InsightsPage entries={entries} streak={streak} />}

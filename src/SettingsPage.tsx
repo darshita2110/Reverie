@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Settings, Theme, FontChoice } from './storage'
 import type { Entry } from './diary'
+import LockSettings from './LockSettings'
 
 type SettingsPageProps = {
   settings: Settings
@@ -91,6 +92,7 @@ export default function SettingsPage({ settings, onUpdateSettings, entries, onEr
           ))}
         </div>
       </div>
+<LockSettings />
 
       <div className="settings-section">
         <div className="settings-title">Preferences</div>

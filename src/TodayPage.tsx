@@ -1,7 +1,13 @@
 import { useState, useRef } from 'react'
 import { MOODS, WEATHER, todayKey, type Entry } from './diary'
 
-type TodayPageProps = { entry: Entry; onChange: (entry: Entry) => void; onBack: () => void }
+type TodayPageProps = {
+  entry: Entry
+  onChange: (entry: Entry) => void
+  onBack: () => void
+  allEntries: Record<string, Entry>
+  onOpen: (date: string) => void
+}
 
 function readAsDataURL(file: File): Promise<string> {
   return new Promise((resolve) => {
@@ -11,7 +17,7 @@ function readAsDataURL(file: File): Promise<string> {
   })
 }
 
-export default function TodayPage({ entry, onChange, onBack }: TodayPageProps) {
+export default function TodayPage({ entry, onChange, onBack, allEntries, onOpen }: TodayPageProps) {
   const [tagDraft, setTagDraft] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -19,6 +25,11 @@ export default function TodayPage({ entry, onChange, onBack }: TodayPageProps) {
   const longDate = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   const weekday = d.toLocaleDateString(undefined, { weekday: 'long' })
   const isToday = entry.date === todayKey()
+
+  // entries from other years on the same month + day
+  const memories = Object.values(allEntries)
+    .filter((e) => e.date !== entry.date && e.date.slice(5) === entry.date.slice(5) && (e.title || e.body || e.mood))
+    .sort((a, b) => b.date.localeCompare(a.date))
 
   function update(patch: Partial<Entry>) {
     onChange({ ...entry, ...patch })
@@ -46,6 +57,20 @@ export default function TodayPage({ entry, onChange, onBack }: TodayPageProps) {
         </div>
         {!isToday && <button className="btn btn-ghost" onClick={onBack}>Back to today</button>}
       </div>
+
+      {memories.length > 0 && (
+        <div className="memories">
+          <div className="memories-title">On this day</div>
+          <div className="memories-row">
+            {memories.map((m) => (
+              <button key={m.date} className="memory-card" onClick={() => onOpen(m.date)}>
+                <div className="memory-year">{m.date.slice(0, 4)}</div>
+                <div className="memory-text">{m.title || (m.body ? m.body.slice(0, 70) : 'A quiet page')}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="journal-sheet">
         <button
