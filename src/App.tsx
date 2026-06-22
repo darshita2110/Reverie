@@ -8,13 +8,13 @@ import EntriesPage from './EntriesPage'
 import CalendarPage from './CalendarPage'
 import InsightsPage from './InsightsPage'
 import SettingsPage from './SettingsPage'
+import EntryView from './EntryView'
 import Onboarding from './Onboarding'
 import LockScreen from './LockScreen'
 import { loadLock } from './lock'
 import { loadEntries, saveEntry, deleteEntry, loadSettings, saveSettings, eraseAllEntries, type Settings } from './storage'
 import { makeEmptyEntry, computeStreak, hasContent, todayKey, type Entry } from './diary'
 import './App.css'
-
 
 type Page = 'today' | 'entries' | 'calendar' | 'insights' | 'settings'
 
@@ -28,6 +28,7 @@ function App() {
   const [entries, setEntries] = useState<Record<string, Entry>>({})
   const [entriesLoaded, setEntriesLoaded] = useState(false)
   const [editingDate, setEditingDate] = useState<string | null>(null)
+  const [viewingDate, setViewingDate] = useState<string | null>(null)
   const [lock] = useState(() => loadLock())
   const [unlocked, setUnlocked] = useState(false)
 
@@ -63,8 +64,16 @@ function App() {
   function updateSettings(patch: Partial<Settings>) {
     setSettings((prev) => { const next = { ...prev, ...patch }; saveSettings(next); return next })
   }
-  function goTo(p: Page) { if (p === 'today') setEditingDate(null); setPage(p); setMenuOpen(false) }
-  function openEntry(date: string) { setEditingDate(date); setPage('today'); setMenuOpen(false) }
+  function goTo(p: Page) {
+    if (p === 'today') setEditingDate(null)
+    setViewingDate(null)
+    setPage(p)
+    setMenuOpen(false)
+  }
+  function openEntry(date: string) {
+    setViewingDate(date)
+    setMenuOpen(false)
+  }
 
   function upsertEntry(entry: Entry) {
     if (!session) return
@@ -75,6 +84,12 @@ function App() {
       setEntries((prev) => { const next = { ...prev }; delete next[entry.date]; return next })
       deleteEntry(session.user.id, entry.date)
     }
+  }
+
+  function deleteEntryNow(date: string) {
+    if (!session) return
+    setEntries((prev) => { const next = { ...prev }; delete next[date]; return next })
+    deleteEntry(session.user.id, date)
   }
 
   function eraseEverything() {
@@ -113,19 +128,30 @@ function App() {
       <div className="app">
         <Sidebar page={page} onNavigate={goTo} theme={settings.theme} onThemeChange={(t) => updateSettings({ theme: t })} streak={streak} open={menuOpen} name={settings.name} />
         <main className="main">
-          {page === 'today' && <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} allEntries={entries} onOpen={openEntry} />}
-          {page === 'entries' && <EntriesPage entries={entries} onOpen={openEntry} />}
-          {page === 'calendar' && <CalendarPage entries={entries} onOpen={openEntry} />}
-          {page === 'insights' && <InsightsPage entries={entries} streak={streak} />}
-          {page === 'settings' && (
-            <SettingsPage
-              settings={settings}
-              onUpdateSettings={updateSettings}
-              entries={entries}
-              onEraseAll={eraseEverything}
-              email={session.user.email ?? ''}
-              onSignOut={() => supabase.auth.signOut()}
+          {viewingDate ? (
+            <EntryView
+              entry={entries[viewingDate] ?? makeEmptyEntry(viewingDate)}
+              onEdit={() => { setEditingDate(viewingDate); setViewingDate(null); setPage('today') }}
+              onDelete={() => { deleteEntryNow(viewingDate); setViewingDate(null) }}
+              onBack={() => setViewingDate(null)}
             />
+          ) : (
+            <>
+              {page === 'today' && <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} allEntries={entries} onOpen={openEntry} />}
+              {page === 'entries' && <EntriesPage entries={entries} onOpen={openEntry} />}
+              {page === 'calendar' && <CalendarPage entries={entries} onOpen={openEntry} />}
+              {page === 'insights' && <InsightsPage entries={entries} streak={streak} />}
+              {page === 'settings' && (
+                <SettingsPage
+                  settings={settings}
+                  onUpdateSettings={updateSettings}
+                  entries={entries}
+                  onEraseAll={eraseEverything}
+                  email={session.user.email ?? ''}
+                  onSignOut={() => supabase.auth.signOut()}
+                />
+              )}
+            </>
           )}
         </main>
       </div>
