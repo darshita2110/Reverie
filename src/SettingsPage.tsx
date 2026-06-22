@@ -7,6 +7,8 @@ type SettingsPageProps = {
   onUpdateSettings: (patch: Partial<Settings>) => void
   entries: Record<string, Entry>
   onEraseAll: () => void
+  email: string
+  onSignOut: () => void
 }
 
 const THEME_DEFS: { id: Theme; name: string; sub: string; gradient: string }[] = [
@@ -23,7 +25,7 @@ const FONT_DEFS: { id: FontChoice; name: string; family: string }[] = [
   { id: 'mono', name: 'Space Mono', family: "'Space Mono', monospace" },
 ]
 
-export default function SettingsPage({ settings, onUpdateSettings, entries, onEraseAll }: SettingsPageProps) {
+export default function SettingsPage({ settings, onUpdateSettings, entries, onEraseAll, email, onSignOut }: SettingsPageProps) {
   const [nameDraft, setNameDraft] = useState(settings.name)
   const totalEntries = Object.keys(entries).length
 
@@ -116,6 +118,17 @@ export default function SettingsPage({ settings, onUpdateSettings, entries, onEr
             onClick={() => onUpdateSettings({ remindersOn: !settings.remindersOn })}
             aria-label="Toggle daily reminder"
           />
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-title">Account</div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-row-label">Signed in as</div>
+            <div className="settings-row-sub">{email}</div>
+          </div>
+          <button className="btn btn-ghost" onClick={onSignOut}>Sign out</button>
         </div>
       </div>
 
