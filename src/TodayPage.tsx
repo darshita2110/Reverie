@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
-import { MOODS, WEATHER, todayKey, type Entry } from './diary'
+import { MOODS, WEATHER, todayKey, stripHtml, type Entry } from './diary'
+import RichEditor from './RichEditor'
 
 type TodayPageProps = {
   entry: Entry
@@ -26,7 +27,6 @@ export default function TodayPage({ entry, onChange, onBack, allEntries, onOpen 
   const weekday = d.toLocaleDateString(undefined, { weekday: 'long' })
   const isToday = entry.date === todayKey()
 
-  // entries from other years on the same month + day
   const memories = Object.values(allEntries)
     .filter((e) => e.date !== entry.date && e.date.slice(5) === entry.date.slice(5) && (e.title || e.body || e.mood))
     .sort((a, b) => b.date.localeCompare(a.date))
@@ -46,7 +46,7 @@ export default function TodayPage({ entry, onChange, onBack, allEntries, onOpen 
     if (urls.length) update({ photos: [...entry.photos, ...urls] })
   }
 
-  const status = entry.title || entry.body || entry.mood ? 'Saved to your diary' : 'Start writing — saves as you go'
+  const status = stripHtml(entry.body) || entry.title || entry.mood ? 'Saved to your diary' : 'Start writing — saves as you go'
 
   return (
     <div className="page">
@@ -65,7 +65,7 @@ export default function TodayPage({ entry, onChange, onBack, allEntries, onOpen 
             {memories.map((m) => (
               <button key={m.date} className="memory-card" onClick={() => onOpen(m.date)}>
                 <div className="memory-year">{m.date.slice(0, 4)}</div>
-                <div className="memory-text">{m.title || (m.body ? m.body.slice(0, 70) : 'A quiet page')}</div>
+                <div className="memory-text">{m.title || (m.body ? stripHtml(m.body).slice(0, 70) : 'A quiet page')}</div>
               </button>
             ))}
           </div>
@@ -115,12 +115,7 @@ export default function TodayPage({ entry, onChange, onBack, allEntries, onOpen 
             ))}
           </div>
 
-          <textarea
-            className="body-textarea"
-            placeholder="Dear diary, today..."
-            value={entry.body}
-            onChange={(e) => update({ body: e.target.value })}
-          />
+          <RichEditor key={entry.date} value={entry.body} onChange={(html) => update({ body: html })} placeholder="Dear diary, today..." />
 
           <div className="photo-strip">
             {entry.photos.map((p, i) => (

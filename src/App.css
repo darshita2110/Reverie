@@ -289,3 +289,19 @@
 .entry-fav-inline { font-size: 12.5px; color: var(--gold); font-weight: 600; }
 .view-body { font-family: var(--font-body); font-size: 16px; line-height: 2.1; white-space: pre-wrap; color: var(--ink); }
 .view-empty { color: var(--ink-soft); font-style: italic; }
+
+.rich-toolbar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.rich-btn { min-width: 34px; height: 30px; padding: 0 9px; border: 1px solid var(--line); background: var(--cream); color: var(--ink); border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.rich-btn:hover { background: var(--paper); }
+.rich-area { min-height: 280px; outline: none; resize: none; }
+.rich-area:empty:before { content: attr(data-placeholder); color: var(--ink-soft); opacity: .5; font-family: var(--font-hand); font-size: 19px; pointer-events: none; }
+.rich-area h2, .view-body h2 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 14px 0 6px; }
+.rich-area ul, .rich-area ol, .view-body ul, .view-body ol { padding-left: 22px; margin: 6px 0; }
+.rich-area p, .view-body p { margin: 0 0 8px; }
+
+.rich-toolbar { display: inline-flex; gap: 4px; margin-bottom: 14px; padding: 5px; background: var(--cream); border: 1px solid var(--line); border-radius: 10px; flex-wrap: wrap; }
+.rich-btn { min-width: 32px; height: 30px; padding: 0 10px; border: none; background: transparent; color: var(--ink-soft); border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600; transition: background .12s, color .12s; }
+.rich-btn:hover { background: var(--paper); color: var(--ink); }
+.rich-btn.active { background: var(--accent); color: #fff; }
+.rich-btn[title="Bold"] { font-weight: 800; }
+.rich-btn[title="Italic"] { font-style: italic; }

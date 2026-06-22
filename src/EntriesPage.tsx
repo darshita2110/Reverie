@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MOODS, entriesSorted, type Entry } from './diary'
+import { MOODS, entriesSorted, stripHtml, type Entry } from './diary'
 
 type EntriesPageProps = {
   entries: Record<string, Entry>
@@ -7,7 +7,7 @@ type EntriesPageProps = {
 }
 
 function snippet(body: string): string {
-  const text = body.trim()
+  const text = stripHtml(body)
   if (!text) return 'No words yet — just a feeling.'
   return text.length > 140 ? text.slice(0, 140) + '…' : text
 }
@@ -23,7 +23,7 @@ export default function EntriesPage({ entries, onOpen }: EntriesPageProps) {
     list = list.filter(
       (e) =>
         e.title.toLowerCase().includes(q) ||
-        e.body.toLowerCase().includes(q) ||
+        stripHtml(e.body).toLowerCase().includes(q) ||
         e.tags.some((t) => t.toLowerCase().includes(q)),
     )
   }

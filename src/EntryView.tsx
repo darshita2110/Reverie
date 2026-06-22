@@ -1,4 +1,4 @@
-import { MOODS, WEATHER, type Entry } from './diary'
+import { MOODS, WEATHER, stripHtml, type Entry } from './diary'
 
 type EntryViewProps = {
   entry: Entry
@@ -35,8 +35,8 @@ export default function EntryView({ entry, onEdit, onDelete, onBack }: EntryView
             {entry.favorite && <span className="entry-fav-inline">★ favorite</span>}
           </div>
 
-          {entry.body ? (
-            <div className="view-body">{entry.body}</div>
+          {stripHtml(entry.body) ? (
+            <div className="view-body" dangerouslySetInnerHTML={{ __html: entry.body }} />
           ) : (
             <div className="view-empty">No words on this page — just a feeling.</div>
           )}

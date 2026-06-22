@@ -1,5 +1,5 @@
 export type Entry = {
-  date: string          // "YYYY-MM-DD" — one page per day, this is the key
+  date: string
   title: string
   body: string
   mood: string | null
@@ -32,8 +32,15 @@ export function makeEmptyEntry(date = todayKey()): Entry {
   return { date, title: '', body: '', mood: null, weather: null, tags: [], photos: [], favorite: false }
 }
 
+export function stripHtml(html: string): string {
+  if (!html) return ''
+  const tmp = document.createElement('div')
+  tmp.innerHTML = html
+  return (tmp.textContent || '').replace(/\s+/g, ' ').trim()
+}
+
 export function hasContent(e: Entry): boolean {
-  return Boolean(e.title.trim() || e.body.trim() || e.mood || e.weather || e.tags.length || e.photos.length || e.favorite)
+  return Boolean(stripHtml(e.body) || e.title.trim() || e.mood || e.weather || e.tags.length || e.photos.length || e.favorite)
 }
 
 export function entriesSorted(entries: Record<string, Entry>): Entry[] {
@@ -51,6 +58,6 @@ export function computeStreak(entries: Record<string, Entry>): number {
 }
 
 export function wordCount(e: Entry): number {
-  const text = e.body.trim()
+  const text = stripHtml(e.body)
   return text ? text.split(/\s+/).length : 0
 }
