@@ -22,7 +22,8 @@ function App() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings())
   const [page, setPage] = useState<Page>('today')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [entries, setEntries] = useState<Record<string, Entry>>(() => loadEntries())
+  const [entries, setEntries] = useState<Record<string, Entry>>({})
+  const [entriesLoaded, setEntriesLoaded] = useState(false)
   const [editingDate, setEditingDate] = useState<string | null>(null)
 
   useEffect(() => {
@@ -34,6 +35,15 @@ function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    if (!session) { setEntries({}); setEntriesLoaded(false); return }
+    setEntriesLoaded(false)
+    loadEntries(session.user.id).then((e) => {
+      setEntries(e)
+      setEntriesLoaded(true)
+    })
+  }, [session])
+
   useEffect(() => { document.body.setAttribute('data-theme', settings.theme) }, [settings.theme])
   useEffect(() => { document.body.setAttribute('data-font', settings.font) }, [settings.font])
 
@@ -42,11 +52,23 @@ function App() {
   }
   function goTo(p: Page) { if (p === 'today') setEditingDate(null); setPage(p); setMenuOpen(false) }
   function openEntry(date: string) { setEditingDate(date); setPage('today'); setMenuOpen(false) }
+
   function upsertEntry(entry: Entry) {
-    setEntries((prev) => ({ ...prev, [entry.date]: entry }))
-    if (hasContent(entry)) saveEntry(entry); else deleteEntry(entry.date)
+    if (!session) return
+    if (hasContent(entry)) {
+      setEntries((prev) => ({ ...prev, [entry.date]: entry }))
+      saveEntry(session.user.id, entry)
+    } else {
+      setEntries((prev) => { const next = { ...prev }; delete next[entry.date]; return next })
+      deleteEntry(session.user.id, entry.date)
+    }
   }
-  function eraseEverything() { eraseAllEntries(); setEntries({}) }
+
+  function eraseEverything() {
+    if (!session) return
+    eraseAllEntries(session.user.id)
+    setEntries({})
+  }
 
   if (!authReady) {
     return <div className="auth-wrap"><div className="auth-sub">Loading…</div></div>
@@ -56,6 +78,9 @@ function App() {
   }
   if (!settings.joinedAt) {
     return <Onboarding onComplete={(name) => updateSettings({ name, joinedAt: Date.now() })} />
+  }
+  if (!entriesLoaded) {
+    return <div className="auth-wrap"><div className="auth-sub">Loading your diary…</div></div>
   }
 
   const activeDate = editingDate ?? todayKey()
@@ -70,10 +95,7 @@ function App() {
       </button>
 
       <div className="app">
-        <Sidebar
-          page={page} onNavigate={goTo} theme={settings.theme} onThemeChange={(t) => updateSettings({ theme: t })}
-          streak={streak} open={menuOpen} name={settings.name}
-        />
+        <Sidebar page={page} onNavigate={goTo} theme={settings.theme} onThemeChange={(t) => updateSettings({ theme: t })} streak={streak} open={menuOpen} name={settings.name} />
         <main className="main">
           {page === 'today' && <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} />}
           {page === 'entries' && <EntriesPage entries={entries} onOpen={openEntry} />}

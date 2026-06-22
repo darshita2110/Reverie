@@ -1,31 +1,36 @@
+import { supabase } from './supabaseClient'
 import type { Entry } from './diary'
 
-const ENTRY_PREFIX = 'reverie:entry:'
-const SETTINGS_KEY = 'reverie:settings'
-
-export function loadEntries(): Record<string, Entry> {
+/* ---------- ENTRIES (cloud, per user) ---------- */
+export async function loadEntries(userId: string): Promise<Record<string, Entry>> {
+  const { data, error } = await supabase.from('entries').select('date, data').eq('user_id', userId)
+  if (error) { console.error('loadEntries', error); return {} }
   const out: Record<string, Entry> = {}
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)
-    if (!key || !key.startsWith(ENTRY_PREFIX)) continue
-    try {
-      const entry = JSON.parse(localStorage.getItem(key) || '') as Entry
-      out[entry.date] = entry
-    } catch {
-      // skip any broken record
-    }
-  }
+  for (const row of data ?? []) out[row.date as string] = row.data as Entry
   return out
 }
 
-export function saveEntry(entry: Entry): void {
-  localStorage.setItem(ENTRY_PREFIX + entry.date, JSON.stringify(entry))
+export async function saveEntry(userId: string, entry: Entry): Promise<void> {
+  const { error } = await supabase.from('entries').upsert({
+    user_id: userId,
+    date: entry.date,
+    data: entry,
+    updated_at: new Date().toISOString(),
+  })
+  if (error) console.error('saveEntry', error)
 }
 
-export function deleteEntry(date: string): void {
-  localStorage.removeItem(ENTRY_PREFIX + date)
+export async function deleteEntry(userId: string, date: string): Promise<void> {
+  const { error } = await supabase.from('entries').delete().eq('user_id', userId).eq('date', date)
+  if (error) console.error('deleteEntry', error)
 }
 
+export async function eraseAllEntries(userId: string): Promise<void> {
+  const { error } = await supabase.from('entries').delete().eq('user_id', userId)
+  if (error) console.error('eraseAllEntries', error)
+}
+
+/* ---------- SETTINGS (local, per device) ---------- */
 export type Theme = 'classic' | 'dusk' | 'botanical' | 'rose'
 export type FontChoice = 'serif' | 'rounded' | 'classic-sans' | 'mono'
 
@@ -45,6 +50,8 @@ export const DEFAULT_SETTINGS: Settings = {
   joinedAt: null,
 }
 
+const SETTINGS_KEY = 'reverie:settings'
+
 export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
@@ -57,13 +64,4 @@ export function loadSettings(): Settings {
 
 export function saveSettings(settings: Settings): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-}
-
-export function eraseAllEntries(): void {
-  const keys: string[] = []
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)
-    if (key && key.startsWith(ENTRY_PREFIX)) keys.push(key)
-  }
-  keys.forEach((k) => localStorage.removeItem(k))
 }
