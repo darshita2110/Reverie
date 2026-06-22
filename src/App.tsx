@@ -5,50 +5,70 @@ import EntriesPage from './EntriesPage'
 import CalendarPage from './CalendarPage'
 import InsightsPage from './InsightsPage'
 import SettingsPage from './SettingsPage'
-import { loadEntries, saveEntry, deleteEntry, loadSettings, saveSettings, clearAllEntries } from './storage'
+import Onboarding from './Onboarding'
+import { loadEntries, saveEntry, deleteEntry, loadSettings, saveSettings, eraseAllEntries, type Settings } from './storage'
 import { makeEmptyEntry, computeStreak, hasContent, todayKey, type Entry } from './diary'
 import './App.css'
 
-type Theme = 'classic' | 'dusk' | 'botanical' | 'rose'
 type Page = 'today' | 'entries' | 'calendar' | 'insights' | 'settings'
 
 function App() {
-  const [settings, setSettings] = useState(() => loadSettings())
+  const [settings, setSettings] = useState<Settings>(() => loadSettings())
   const [page, setPage] = useState<Page>('today')
   const [menuOpen, setMenuOpen] = useState(false)
   const [entries, setEntries] = useState<Record<string, Entry>>(() => loadEntries())
   const [editingDate, setEditingDate] = useState<string | null>(null)
 
-  useEffect(() => { document.body.setAttribute('data-theme', settings.theme) }, [settings.theme])
-  useEffect(() => { saveSettings(settings) }, [settings])
+  useEffect(() => {
+    document.body.setAttribute('data-theme', settings.theme)
+  }, [settings.theme])
 
-  function updateSettings(patch: Partial<typeof settings>) {
-    setSettings((s) => ({ ...s, ...patch }))
+  useEffect(() => {
+    document.body.setAttribute('data-font', settings.font)
+  }, [settings.font])
+
+  function updateSettings(patch: Partial<Settings>) {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch }
+      saveSettings(next)
+      return next
+    })
   }
+
   function goTo(p: Page) {
     if (p === 'today') setEditingDate(null)
     setPage(p)
     setMenuOpen(false)
   }
+
   function openEntry(date: string) {
     setEditingDate(date)
     setPage('today')
     setMenuOpen(false)
   }
+
   function upsertEntry(entry: Entry) {
     setEntries((prev) => ({ ...prev, [entry.date]: entry }))
     if (hasContent(entry)) saveEntry(entry)
     else deleteEntry(entry.date)
   }
-  function eraseAll() {
-    clearAllEntries()
+
+  function eraseEverything() {
+    eraseAllEntries()
     setEntries({})
+  }
+
+  if (!settings.joinedAt) {
+    return (
+      <Onboarding
+        onComplete={(name) => updateSettings({ name, joinedAt: Date.now() })}
+      />
+    )
   }
 
   const activeDate = editingDate ?? todayKey()
   const activeEntry = entries[activeDate] ?? makeEmptyEntry(activeDate)
   const streak = computeStreak(entries)
-  const theme = settings.theme as Theme
 
   return (
     <>
@@ -58,21 +78,28 @@ function App() {
       </button>
 
       <div className="app">
-        <Sidebar page={page} onNavigate={goTo} theme={theme} onThemeChange={(t) => updateSettings({ theme: t })} streak={streak} open={menuOpen} />
+        <Sidebar
+          page={page}
+          onNavigate={goTo}
+          theme={settings.theme}
+          onThemeChange={(t) => updateSettings({ theme: t })}
+          streak={streak}
+          open={menuOpen}
+          name={settings.name}
+        />
         <main className="main">
-          {page === 'today' && <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} />}
+          {page === 'today' && (
+            <TodayPage entry={activeEntry} onChange={upsertEntry} onBack={() => goTo('today')} />
+          )}
           {page === 'entries' && <EntriesPage entries={entries} onOpen={openEntry} />}
           {page === 'calendar' && <CalendarPage entries={entries} onOpen={openEntry} />}
-          {page === 'insights' && <InsightsPage entries={entries} />}
+          {page === 'insights' && <InsightsPage entries={entries} streak={streak} />}
           {page === 'settings' && (
             <SettingsPage
-              theme={theme}
-              onThemeChange={(t) => updateSettings({ theme: t })}
-              displayName={settings.displayName}
-              remindersOn={settings.remindersOn}
-              onSettingsChange={updateSettings}
+              settings={settings}
+              onUpdateSettings={updateSettings}
               entries={entries}
-              onEraseAll={eraseAll}
+              onEraseAll={eraseEverything}
             />
           )}
         </main>

@@ -49,3 +49,8 @@ export function computeStreak(entries: Record<string, Entry>): number {
   }
   return streak
 }
+
+export function wordCount(e: Entry): number {
+  const text = e.body.trim()
+  return text ? text.split(/\s+/).length : 0
+}

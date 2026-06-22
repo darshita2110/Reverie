@@ -1,12 +1,13 @@
 import type { Entry } from './diary'
 
-const PREFIX = 'reverie:entry:'
+const ENTRY_PREFIX = 'reverie:entry:'
+const SETTINGS_KEY = 'reverie:settings'
 
 export function loadEntries(): Record<string, Entry> {
   const out: Record<string, Entry> = {}
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
-    if (!key || !key.startsWith(PREFIX)) continue
+    if (!key || !key.startsWith(ENTRY_PREFIX)) continue
     try {
       const entry = JSON.parse(localStorage.getItem(key) || '') as Entry
       out[entry.date] = entry
@@ -18,34 +19,51 @@ export function loadEntries(): Record<string, Entry> {
 }
 
 export function saveEntry(entry: Entry): void {
-  localStorage.setItem(PREFIX + entry.date, JSON.stringify(entry))
+  localStorage.setItem(ENTRY_PREFIX + entry.date, JSON.stringify(entry))
 }
 
 export function deleteEntry(date: string): void {
-  localStorage.removeItem(PREFIX + date)
+  localStorage.removeItem(ENTRY_PREFIX + date)
 }
 
-export type Settings = { theme: string; displayName: string; remindersOn: boolean }
-const SETTINGS_KEY = 'reverie:settings'
+export type Theme = 'classic' | 'dusk' | 'botanical' | 'rose'
+export type FontChoice = 'serif' | 'rounded' | 'classic-sans' | 'mono'
+
+export type Settings = {
+  name: string
+  theme: Theme
+  font: FontChoice
+  remindersOn: boolean
+  joinedAt: number | null
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  name: '',
+  theme: 'classic',
+  font: 'serif',
+  remindersOn: false,
+  joinedAt: null,
+}
 
 export function loadSettings(): Settings {
-  const def: Settings = { theme: 'classic', displayName: '', remindersOn: false }
   try {
-    return { ...def, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (!raw) return DEFAULT_SETTINGS
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
   } catch {
-    return def
+    return DEFAULT_SETTINGS
   }
 }
 
-export function saveSettings(s: Settings): void {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s))
+export function saveSettings(settings: Settings): void {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
 }
 
-export function clearAllEntries(): void {
+export function eraseAllEntries(): void {
   const keys: string[] = []
   for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i)
-    if (k && k.startsWith(PREFIX)) keys.push(k)
+    const key = localStorage.key(i)
+    if (key && key.startsWith(ENTRY_PREFIX)) keys.push(key)
   }
   keys.forEach((k) => localStorage.removeItem(k))
 }

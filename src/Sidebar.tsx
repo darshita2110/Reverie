@@ -27,16 +27,17 @@ type SidebarProps = {
   onThemeChange: (theme: Theme) => void
   streak: number
   open: boolean
+  name: string
 }
 
-export default function Sidebar({ page, onNavigate, theme, onThemeChange, streak, open }: SidebarProps) {
+export default function Sidebar({ page, onNavigate, theme, onThemeChange, streak, open, name }: SidebarProps) {
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="brand">
         <div className="brand-mark">R</div>
         <div>
           <div className="brand-text">Reverie</div>
-          <div className="brand-sub">{greeting()}</div>
+          <div className="brand-sub">{greeting()}{name ? `, ${name}` : ''}</div>
         </div>
       </div>
 

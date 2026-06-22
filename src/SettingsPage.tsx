@@ -1,37 +1,51 @@
-import { todayKey, type Entry } from './diary'
-
-type Theme = 'classic' | 'dusk' | 'botanical' | 'rose'
-
-const THEMES: { id: Theme; name: string; sub: string; preview: string }[] = [
-  { id: 'classic', name: 'Classic', sub: 'Warm paper & terracotta', preview: 'linear-gradient(135deg,#FBF6EC 0 50%,#B85C38 50%)' },
-  { id: 'dusk', name: 'Dusk', sub: 'Soft dark for night', preview: 'linear-gradient(135deg,#2B2521 0 50%,#E08A5E 50%)' },
-  { id: 'botanical', name: 'Botanical', sub: 'Sage & cream', preview: 'linear-gradient(135deg,#F3F1E6 0 50%,#4F7A52 50%)' },
-  { id: 'rose', name: 'Rose', sub: 'Dusty pink & blush', preview: 'linear-gradient(135deg,#FBF0EC 0 50%,#C65A6E 50%)' },
-]
+import { useState } from 'react'
+import type { Settings, Theme, FontChoice } from './storage'
+import type { Entry } from './diary'
 
 type SettingsPageProps = {
-  theme: Theme
-  onThemeChange: (t: Theme) => void
-  displayName: string
-  remindersOn: boolean
-  onSettingsChange: (patch: { displayName?: string; remindersOn?: boolean }) => void
+  settings: Settings
+  onUpdateSettings: (patch: Partial<Settings>) => void
   entries: Record<string, Entry>
   onEraseAll: () => void
 }
 
-export default function SettingsPage({ theme, onThemeChange, displayName, remindersOn, onSettingsChange, entries, onEraseAll }: SettingsPageProps) {
-  function exportJson() {
-    const data = JSON.stringify(Object.values(entries), null, 2)
-    const blob = new Blob([data], { type: 'application/json' })
+const THEME_DEFS: { id: Theme; name: string; sub: string; gradient: string }[] = [
+  { id: 'classic', name: 'Classic', sub: 'Warm paper & terracotta', gradient: 'linear-gradient(135deg,#FBF6EC,#B85C38)' },
+  { id: 'dusk', name: 'Dusk', sub: 'Low light, soft ember', gradient: 'linear-gradient(135deg,#2B2521,#E08A5E)' },
+  { id: 'botanical', name: 'Botanical', sub: 'Sage greens, garden air', gradient: 'linear-gradient(135deg,#F3F1E6,#4F7A52)' },
+  { id: 'rose', name: 'Rose', sub: 'Dusty pink, soft warmth', gradient: 'linear-gradient(135deg,#FBF0EC,#C65A6E)' },
+]
+
+const FONT_DEFS: { id: FontChoice; name: string; family: string }[] = [
+  { id: 'serif', name: 'Fraunces + Inter', family: "'Fraunces', serif" },
+  { id: 'rounded', name: 'Quicksand', family: "'Quicksand', sans-serif" },
+  { id: 'classic-sans', name: 'Inter', family: "'Inter', sans-serif" },
+  { id: 'mono', name: 'Space Mono', family: "'Space Mono', monospace" },
+]
+
+export default function SettingsPage({ settings, onUpdateSettings, entries, onEraseAll }: SettingsPageProps) {
+  const [nameDraft, setNameDraft] = useState(settings.name)
+  const totalEntries = Object.keys(entries).length
+
+  function commitName() {
+    onUpdateSettings({ name: nameDraft.trim() })
+  }
+
+  function handleExport() {
+    const payload = { settings, entries }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `reverie-${todayKey()}.json`
+    a.download = 'reverie-export.json'
     a.click()
     URL.revokeObjectURL(url)
   }
-  function eraseAll() {
-    if (window.confirm('Erase ALL your entries? This cannot be undone.')) onEraseAll()
+
+  function handleEraseAll() {
+    if (totalEntries === 0) return
+    const ok = window.confirm('This will permanently delete every page you have written. This cannot be undone. Continue?')
+    if (ok) onEraseAll()
   }
 
   return (
@@ -46,9 +60,13 @@ export default function SettingsPage({ theme, onThemeChange, displayName, remind
       <div className="settings-section">
         <div className="settings-title">Theme</div>
         <div className="theme-grid">
-          {THEMES.map((t) => (
-            <div key={t.id} className={`theme-card ${theme === t.id ? 'active' : ''}`} onClick={() => onThemeChange(t.id)}>
-              <div className="theme-preview" style={{ background: t.preview }} />
+          {THEME_DEFS.map((t) => (
+            <div
+              key={t.id}
+              className={`theme-card ${settings.theme === t.id ? 'active' : ''}`}
+              onClick={() => onUpdateSettings({ theme: t.id })}
+            >
+              <div className="theme-preview" style={{ background: t.gradient }} />
               <div className="theme-card-name">{t.name}</div>
               <div className="theme-card-sub">{t.sub}</div>
             </div>
@@ -57,21 +75,47 @@ export default function SettingsPage({ theme, onThemeChange, displayName, remind
       </div>
 
       <div className="settings-section">
-        <div className="settings-title">Profile</div>
+        <div className="settings-title">Font</div>
+        <div className="font-grid">
+          {FONT_DEFS.map((f) => (
+            <div
+              key={f.id}
+              className={`font-card ${settings.font === f.id ? 'active' : ''}`}
+              onClick={() => onUpdateSettings({ font: f.id })}
+            >
+              <div className="font-card-name">{f.name}</div>
+              <div className="font-card-sample" style={{ fontFamily: f.family }}>Dear diary, today felt different.</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-title">Preferences</div>
         <div className="settings-row">
           <div>
             <div className="settings-row-label">Display name</div>
-            <div className="settings-row-sub">A friendly name for your diary.</div>
+            <div className="settings-row-sub">Used in your greeting on the sidebar</div>
           </div>
-          <input className="settings-input" value={displayName} placeholder="Your name" maxLength={24}
-            onChange={(e) => onSettingsChange({ displayName: e.target.value })} />
+          <input
+            className="settings-input"
+            value={nameDraft}
+            maxLength={24}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => { if (e.key === 'Enter') commitName() }}
+          />
         </div>
         <div className="settings-row">
           <div>
             <div className="settings-row-label">Daily reminder</div>
-            <div className="settings-row-sub">A gentle nudge to write each day.</div>
+            <div className="settings-row-sub">A gentle nudge if you haven't written today</div>
           </div>
-          <button className={`switch ${remindersOn ? 'on' : ''}`} onClick={() => onSettingsChange({ remindersOn: !remindersOn })} aria-label="Toggle daily reminder" />
+          <button
+            className={`switch ${settings.remindersOn ? 'on' : ''}`}
+            onClick={() => onUpdateSettings({ remindersOn: !settings.remindersOn })}
+            aria-label="Toggle daily reminder"
+          />
         </div>
       </div>
 
@@ -79,18 +123,24 @@ export default function SettingsPage({ theme, onThemeChange, displayName, remind
         <div className="settings-title">Your data</div>
         <div className="settings-row">
           <div>
-            <div className="settings-row-label">Export entries</div>
-            <div className="settings-row-sub">Download all your pages as a JSON file.</div>
+            <div className="settings-row-label">Export your diary</div>
+            <div className="settings-row-sub">Download every page as a JSON file — handy for moving devices or keeping a backup</div>
           </div>
-          <button className="btn btn-ghost" onClick={exportJson}>Export</button>
+          <button className="btn btn-ghost" onClick={handleExport}>Export</button>
         </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-title">Danger zone</div>
         <div className="danger-zone">
-          <div className="settings-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+          <div className="settings-row" style={{ borderBottom: 'none' }}>
             <div>
-              <div className="settings-row-label">Erase everything</div>
-              <div className="settings-row-sub">Permanently delete all entries. No undo.</div>
+              <div className="settings-row-label">Erase all entries</div>
+              <div className="settings-row-sub">Permanently deletes all {totalEntries} page{totalEntries === 1 ? '' : 's'} you've written</div>
             </div>
-            <button className="btn btn-danger" onClick={eraseAll}>Erase all</button>
+            <button className="btn btn-danger" onClick={handleEraseAll} disabled={totalEntries === 0}>
+              Erase everything
+            </button>
           </div>
         </div>
       </div>

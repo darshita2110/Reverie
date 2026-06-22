@@ -7,6 +7,8 @@
   --font-display:'Fraunces', serif;
   --font-hand:'Caveat', cursive;
   --font-body:'Inter', sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 [data-theme="dusk"] {
   --paper:#2B2521; --paper-deep:#231E1A;
@@ -28,15 +30,40 @@
   --line:#EBC9C3; --cream:#F6DDDF; --gold:#C98F56;
 }
 
+/* font-choice overrides, layered independently of color theme */
+[data-font="rounded"] { --font-body: 'Quicksand', sans-serif; }
+[data-font="classic-sans"] { --font-body: 'Inter', sans-serif; --font-display: 'Inter', sans-serif; }
+[data-font="mono"] { --font-body: 'Space Mono', monospace; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
+html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font-body);
   background: var(--paper-deep);
   color: var(--ink);
   transition: background .4s ease, color .4s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 #root { max-width: none; }
+
+button, input, textarea { font-family: inherit; }
+img { max-width: 100%; display: block; }
+::selection { background: var(--gold); color: var(--paper); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 .grain {
   position: fixed; inset: 0; pointer-events: none; opacity: 0.05; z-index: 999; mix-blend-mode: multiply;
