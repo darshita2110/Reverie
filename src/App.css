@@ -305,3 +305,10 @@
 .rich-btn.active { background: var(--accent); color: #fff; }
 .rich-btn[title="Bold"] { font-weight: 800; }
 .rich-btn[title="Italic"] { font-style: italic; }
+
+.ai-suggest { margin-bottom: 16px; }
+.prompt-card { display: flex; align-items: center; gap: 10px; background: var(--cream); border: 1px dashed var(--gold); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+.prompt-spark { font-size: 16px; }
+.prompt-text { flex: 1; font-family: var(--font-hand); font-size: 18px; color: var(--accent-deep); line-height: 1.4; }
+.prompt-refresh { background: none; border: none; cursor: pointer; font-size: 16px; color: var(--ink-soft); }
+.prompt-refresh:hover { color: var(--accent); }

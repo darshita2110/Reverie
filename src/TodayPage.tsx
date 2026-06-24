@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { MOODS, WEATHER, todayKey, stripHtml, type Entry } from './diary'
 import RichEditor from './RichEditor'
+import { aiPrompt, aiMoodTags } from './ai'
 
 type TodayPageProps = {
   entry: Entry
@@ -20,16 +21,26 @@ function readAsDataURL(file: File): Promise<string> {
 
 export default function TodayPage({ entry, onChange, onBack, allEntries, onOpen }: TodayPageProps) {
   const [tagDraft, setTagDraft] = useState('')
+  const [promptText, setPromptText] = useState('')
+  const [busyPrompt, setBusyPrompt] = useState(false)
+  const [busyAI, setBusyAI] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const d = new Date(entry.date + 'T12:00:00')
   const longDate = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   const weekday = d.toLocaleDateString(undefined, { weekday: 'long' })
   const isToday = entry.date === todayKey()
+  const isEmpty = !stripHtml(entry.body)
 
   const memories = Object.values(allEntries)
     .filter((e) => e.date !== entry.date && e.date.slice(5) === entry.date.slice(5) && (e.title || e.body || e.mood))
     .sort((a, b) => b.date.localeCompare(a.date))
+
+  const recentSnippets = Object.values(allEntries)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 5)
+    .map((e) => stripHtml(e.body))
+    .filter(Boolean)
 
   function update(patch: Partial<Entry>) {
     onChange({ ...entry, ...patch })
@@ -44,6 +55,24 @@ export default function TodayPage({ entry, onChange, onBack, allEntries, onOpen 
     const slice = Array.from(files || []).slice(0, room)
     const urls = await Promise.all(slice.map(readAsDataURL))
     if (urls.length) update({ photos: [...entry.photos, ...urls] })
+  }
+
+  async function getPrompt() {
+    setBusyPrompt(true)
+    setPromptText(await aiPrompt(recentSnippets))
+    setBusyPrompt(false)
+  }
+
+  async function suggestMoodTags() {
+    const text = stripHtml(entry.body)
+    if (!text) return
+    setBusyAI(true)
+    const s = await aiMoodTags(text)
+    const validMood = MOODS.some((m) => m.id === s.mood) ? s.mood : entry.mood
+    const cleanTags = (s.tags || []).map((t) => t.toLowerCase().replace(/^#/, '').slice(0, 20)).filter(Boolean)
+    const mergedTags = Array.from(new Set([...entry.tags, ...cleanTags])).slice(0, 8)
+    update({ mood: validMood, tags: mergedTags })
+    setBusyAI(false)
   }
 
   const status = stripHtml(entry.body) || entry.title || entry.mood ? 'Saved to your diary' : 'Start writing — saves as you go'
@@ -114,6 +143,26 @@ export default function TodayPage({ entry, onChange, onBack, allEntries, onOpen 
               </button>
             ))}
           </div>
+
+          <button className="btn btn-ghost ai-suggest" onClick={suggestMoodTags} disabled={busyAI || isEmpty}>
+            {busyAI ? 'Reading…' : '✨ Suggest mood & tags'}
+          </button>
+
+          {isEmpty && (
+            <div className="prompt-card">
+              {promptText ? (
+                <>
+                  <span className="prompt-spark">✨</span>
+                  <span className="prompt-text">{promptText}</span>
+                  <button className="prompt-refresh" onClick={getPrompt} disabled={busyPrompt} title="Another one">↻</button>
+                </>
+              ) : (
+                <button className="btn btn-ghost" onClick={getPrompt} disabled={busyPrompt}>
+                  {busyPrompt ? 'Thinking…' : '✨ Give me a writing prompt'}
+                </button>
+              )}
+            </div>
+          )}
 
           <RichEditor key={entry.date} value={entry.body} onChange={(html) => update({ body: html })} placeholder="Dear diary, today..." />
 
