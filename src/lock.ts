@@ -8,14 +8,16 @@ export type LockConfig = {
   answerSalt: string
 }
 
+const EMPTY: LockConfig = { enabled: false, credentialId: '', question: '', answerHash: '', answerSalt: '' }
+
 export function loadLock(): LockConfig {
   try {
-    return {
-      enabled: false, credentialId: '', question: '', answerHash: '', answerSalt: '',
-      ...JSON.parse(localStorage.getItem(LOCK_KEY) || '{}'),
-    }
+    const raw = JSON.parse(localStorage.getItem(LOCK_KEY) || '{}')
+    // migrate old PIN-based config — if no answerHash it's the old format, reset it
+    if (raw.enabled && !raw.answerHash) { localStorage.removeItem(LOCK_KEY); return EMPTY }
+    return { ...EMPTY, ...raw }
   } catch {
-    return { enabled: false, credentialId: '', question: '', answerHash: '', answerSalt: '' }
+    return EMPTY
   }
 }
 
