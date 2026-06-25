@@ -23,8 +23,8 @@ export default function LockScreen({ hash, salt, onUnlock }: LockScreenProps) {
     <div className="lock-wrap">
       <div className="grain" />
       <div className="lock-card">
-        <div className="auth-mark">R</div>
-        <div className="lock-title">Enter your PIN</div>
+        <div className="auth-mark">🔒</div>
+        <div className="lock-title">Unlock your secrets</div>
         <div className={`pin-dots ${error ? 'error' : ''}`}>
           {[0, 1, 2, 3].map((i) => <span key={i} className={`pin-dot ${i < pin.length ? 'filled' : ''}`} />)}
         </div>

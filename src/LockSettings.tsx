@@ -25,11 +25,11 @@ export default function LockSettings() {
 
   return (
     <div className="settings-section">
-      <div className="settings-title">App lock</div>
+      <div className="settings-title">Secrets PIN</div>
       <div className="settings-row" style={{ borderBottom: setting ? '1px solid var(--line)' : 'none' }}>
         <div>
           <div className="settings-row-label">PIN lock · {cfg.enabled ? 'On' : 'Off'}</div>
-          <div className="settings-row-sub">Ask for a 4-digit PIN every time the app opens.</div>
+          <div className="settings-row-sub">Require a 4-digit PIN to open your Secrets page.</div>
         </div>
         {cfg.enabled ? (
           <div style={{ display: 'flex', gap: 8 }}>
