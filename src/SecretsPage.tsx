@@ -1,34 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { loadLock } from './lock'
 import LockScreen from './LockScreen'
-import { loadSecrets, saveSecrets, makeSecret, type Secret } from './secrets'
+import { loadSecrets, saveSecret, deleteSecret, makeSecret, type Secret } from './secrets'
 
-export default function SecretsPage() {
+type Props = { userId: string }
+
+export default function SecretsPage({ userId }: Props) {
   const lock = loadLock()
   const [unlocked, setUnlocked] = useState(!lock.enabled)
-  const [secrets, setSecrets] = useState<Secret[]>(() => loadSecrets())
+  const [secrets, setSecrets] = useState<Secret[]>([])
+  const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Secret | null>(null)
 
-  function persist(updated: Secret[]) {
-    setSecrets(updated)
-    saveSecrets(updated)
-  }
+  useEffect(() => {
+    if (!unlocked) return
+    loadSecrets(userId).then((s) => { setSecrets(s); setLoading(false) })
+  }, [unlocked, userId])
 
-  function saveEditing() {
+  async function saveEditing() {
     if (!editing) return
     const trimmed = { ...editing, title: editing.title.trim(), body: editing.body.trim(), updatedAt: Date.now() }
     if (!trimmed.title && !trimmed.body) {
-      persist(secrets.filter((s) => s.id !== editing.id))
+      await deleteSecret(userId, editing.id)
+      setSecrets((prev) => prev.filter((s) => s.id !== editing.id))
     } else {
-      const exists = secrets.some((s) => s.id === editing.id)
-      persist(exists ? secrets.map((s) => s.id === editing.id ? trimmed : s) : [trimmed, ...secrets])
+      await saveSecret(userId, trimmed)
+      const exists = secrets.some((s) => s.id === trimmed.id)
+      setSecrets((prev) => exists ? prev.map((s) => s.id === trimmed.id ? trimmed : s) : [trimmed, ...prev])
     }
     setEditing(null)
   }
 
-  function deleteSecret(id: string) {
+  async function handleDelete(id: string) {
     if (!window.confirm('Delete this secret? This cannot be undone.')) return
-    persist(secrets.filter((s) => s.id !== id))
+    await deleteSecret(userId, id)
+    setSecrets((prev) => prev.filter((s) => s.id !== id))
     setEditing(null)
   }
 
@@ -43,7 +49,7 @@ export default function SecretsPage() {
           <div className="page-title">Secret note</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-ghost" onClick={saveEditing}>Done</button>
-            <button className="btn btn-danger" onClick={() => deleteSecret(editing.id)}>Delete</button>
+            <button className="btn btn-danger" onClick={() => handleDelete(editing.id)}>Delete</button>
           </div>
         </div>
         <div className="secret-editor">
@@ -82,7 +88,9 @@ export default function SecretsPage() {
         </div>
       )}
 
-      {secrets.length === 0 ? (
+      {loading ? (
+        <div className="empty-state"><p>Loading…</p></div>
+      ) : secrets.length === 0 ? (
         <div className="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <h3>No secrets yet</h3>

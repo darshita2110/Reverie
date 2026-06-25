@@ -126,7 +126,7 @@ function App() {
               {page === 'entries' && <EntriesPage entries={entries} onOpen={openEntry} />}
               {page === 'calendar' && <CalendarPage entries={entries} onOpen={openEntry} />}
               {page === 'insights' && <InsightsPage entries={entries} streak={streak} />}
-              {page === 'secrets' && <SecretsPage />}
+              {page === 'secrets' && <SecretsPage userId={session.user.id} />}
               {page === 'settings' && (
                 <SettingsPage
                   settings={settings}
