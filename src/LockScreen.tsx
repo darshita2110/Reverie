@@ -1,21 +1,36 @@
-import { useState } from 'react'
-import { hashPin } from './lock'
+import { useState, useEffect } from 'react'
+import { verifyBiometric, hashAnswer, isBiometricSupported, type LockConfig } from './lock'
 
-type LockScreenProps = { hash: string; salt: string; onUnlock: () => void }
+type Props = { lock: LockConfig; onUnlock: () => void; title?: string }
 
-export default function LockScreen({ hash, salt, onUnlock }: LockScreenProps) {
-  const [pin, setPin] = useState('')
-  const [error, setError] = useState(false)
+export default function LockScreen({ lock, onUnlock, title = 'Welcome back 👋' }: Props) {
+  const hasBiometric = !!(lock.credentialId && isBiometricSupported())
+  const [mode, setMode] = useState<'biometric' | 'question'>(hasBiometric ? 'biometric' : 'question')
+  const [answer, setAnswer] = useState('')
+  const [error, setError] = useState('')
+  const [trying, setTrying] = useState(false)
 
-  async function press(d: string) {
-    if (pin.length >= 4) return
-    const next = pin + d
-    setPin(next)
-    setError(false)
-    if (next.length === 4) {
-      const h = await hashPin(next, salt)
-      if (h === hash) onUnlock()
-      else { setError(true); setTimeout(() => setPin(''), 400) }
+  useEffect(() => {
+    if (hasBiometric) tryBiometric()
+  }, [])
+
+  async function tryBiometric() {
+    setTrying(true)
+    setError('')
+    const ok = await verifyBiometric(lock.credentialId)
+    setTrying(false)
+    if (ok) onUnlock()
+    else setError("Biometric didn't work. Try your secret question.")
+  }
+
+  async function checkAnswer() {
+    if (!answer.trim()) return
+    const h = await hashAnswer(answer, lock.answerSalt)
+    if (h === lock.answerHash) {
+      onUnlock()
+    } else {
+      setError("That doesn't seem right 🤔 Try again.")
+      setAnswer('')
     }
   }
 
@@ -23,19 +38,43 @@ export default function LockScreen({ hash, salt, onUnlock }: LockScreenProps) {
     <div className="lock-wrap">
       <div className="grain" />
       <div className="lock-card">
-        <div className="auth-mark">🔒</div>
-        <div className="lock-title">Unlock your secrets</div>
-        <div className={`pin-dots ${error ? 'error' : ''}`}>
-          {[0, 1, 2, 3].map((i) => <span key={i} className={`pin-dot ${i < pin.length ? 'filled' : ''}`} />)}
-        </div>
-        <div className="pin-pad">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-            <button key={d} className="pin-key" onClick={() => press(d)}>{d}</button>
-          ))}
-          <span />
-          <button className="pin-key" onClick={() => press('0')}>0</button>
-          <button className="pin-key pin-back" onClick={() => { setPin(pin.slice(0, -1)); setError(false) }}>⌫</button>
-        </div>
+        <div className="lock-emoji">{mode === 'biometric' ? '🔐' : '🤫'}</div>
+        <div className="lock-title">{title}</div>
+
+        {mode === 'biometric' ? (
+          <>
+            <p className="lock-sub">Use your fingerprint or face ID to unlock</p>
+            <button className="btn btn-primary lock-bio-btn" onClick={tryBiometric} disabled={trying}>
+              {trying ? 'Verifying…' : '☝️ Touch to unlock'}
+            </button>
+            {error && <div className="lock-error">{error}</div>}
+            <button className="lock-switch-btn" onClick={() => { setMode('question'); setError('') }}>
+              Use secret question instead
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="lock-sub lock-question">{lock.question}</p>
+            <input
+              className="lock-answer-input"
+              type="text"
+              placeholder="Your answer…"
+              value={answer}
+              autoFocus
+              onChange={(e) => setAnswer(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') checkAnswer() }}
+            />
+            {error && <div className="lock-error">{error}</div>}
+            <button className="btn btn-primary" style={{ width: '100%' }} onClick={checkAnswer}>
+              Unlock
+            </button>
+            {hasBiometric && (
+              <button className="lock-switch-btn" onClick={() => { setMode('biometric'); setError(''); tryBiometric() }}>
+                Use fingerprint instead
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

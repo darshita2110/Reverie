@@ -11,6 +11,8 @@ import SettingsPage from './SettingsPage'
 import EntryView from './EntryView'
 import Onboarding from './Onboarding'
 import SecretsPage from './SecretsPage'
+import LockScreen from './LockScreen'
+import { loadLock } from './lock'
 import { loadEntries, saveEntry, deleteEntry, loadSettings, saveSettings, eraseAllEntries, type Settings } from './storage'
 import { makeEmptyEntry, computeStreak, hasContent, todayKey, type Entry } from './diary'
 import './App.css'
@@ -27,6 +29,8 @@ function App() {
   const [entriesLoaded, setEntriesLoaded] = useState(false)
   const [editingDate, setEditingDate] = useState<string | null>(null)
   const [viewingDate, setViewingDate] = useState<string | null>(null)
+  const [lock] = useState(() => loadLock())
+  const [unlocked, setUnlocked] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -48,6 +52,12 @@ function App() {
 
   useEffect(() => { document.body.setAttribute('data-theme', settings.theme) }, [settings.theme])
   useEffect(() => { document.body.setAttribute('data-font', settings.font) }, [settings.font])
+  useEffect(() => {
+    if (!lock.enabled) return
+    const onHide = () => { if (document.visibilityState === 'hidden') setUnlocked(false) }
+    document.addEventListener('visibilitychange', onHide)
+    return () => document.removeEventListener('visibilitychange', onHide)
+  }, [lock.enabled])
 
   function updateSettings(patch: Partial<Settings>) {
     setSettings((prev) => { const next = { ...prev, ...patch }; saveSettings(next); return next })
@@ -85,6 +95,7 @@ function App() {
 
   if (!authReady) return <div className="auth-wrap"><div className="auth-sub">Loading…</div></div>
   if (!session) return <AuthScreen />
+  if (lock.enabled && !unlocked) return <LockScreen lock={lock} onUnlock={() => setUnlocked(true)} />
   if (!settings.joinedAt) return <Onboarding onComplete={(name) => updateSettings({ name, joinedAt: Date.now() })} />
   if (!entriesLoaded) return <div className="auth-wrap"><div className="auth-sub">Loading your diary…</div></div>
 

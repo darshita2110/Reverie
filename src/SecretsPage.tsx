@@ -39,7 +39,7 @@ export default function SecretsPage({ userId }: Props) {
   }
 
   if (!unlocked) {
-    return <LockScreen hash={lock.hash} salt={lock.salt} onUnlock={() => setUnlocked(true)} />
+    return <LockScreen lock={lock} onUnlock={() => setUnlocked(true)} title="Unlock your secrets 🤫" />
   }
 
   if (editing) {
